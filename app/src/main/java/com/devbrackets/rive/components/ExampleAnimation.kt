@@ -1,25 +1,20 @@
 package com.devbrackets.rive.components
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.devbrackets.rive.R
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
- * NOTE: currently the [ExampleAnimationType] and [ExampleAnimationState] don't
- * represent the current resource and won't work. This serves primarily as an
- * example of how it can be setup and will be updated at a future date with
- * a rive asset that matches.
+ * Serves as an example on how to integrate the [RiveStateController] with the
+ * [RiveAnimation].
+ *
+ * [ExampleAnimationType] represents the visual presentation you want, in this example
+ * this is a 1:1 mapping of the animation `stateName` however in more complex animations
+ * this may represent a combination of inputs.
+ *
+ * [ExampleAnimationState] represents the resulting state of the animation, in this example
+ * this is also a 1:1 mapping with the [ExampleAnimationType] however there may be cases
+ * where you want to emit intermediate states beyond just the starting/ending [ExampleAnimationType]
  */
 @Composable
 internal fun ExampleAnimation(
@@ -32,8 +27,10 @@ internal fun ExampleAnimation(
     RiveAnimation(
         animation = remember {
             RiveAnimationData.Resource(
-                // NOTE: this resource was pulled from the rive-android sample app
-                resId = R.raw.trailblaze,
+                // NOTE: this resource was pulled from the rive-android sample app on April 3, 2024
+                // All ownership and rights belong to Rive
+                // https://github.com/rive-app/rive-android/blob/master/app/src/main/res/raw/skills.riv
+                resId = R.raw.skills,
                 artboardName = ART_BOARD,
                 stateMachineName = STATE_MACHINE,
                 autoplay = false // applyState handles playing
@@ -87,111 +84,55 @@ private fun SyncState(
 }
 
 /**
- * Applies the [state] to the [RiveStateController] by setting the appropriate
- * inputs then firing the `"Continue"` input
+ * Applies the [state] to the [RiveStateController]
  */
 private suspend fun RiveStateController.applyState(state: ExampleAnimationType) {
     // Wait until the state machines are loaded
     isLoadedAndPlaying()
 
-    // We need to call play before we can set the state otherwise Rive just plays the default state (Idle in this case)
+    // We need to call play before we can set the state otherwise Rive just plays the default state
     play(STATE_MACHINE)
 
     when (state) {
-        is ExampleAnimationType.Idle -> {
-            setState(STATE_MACHINE, AnimationInput.StartIdle.name, false)
-            fireState(STATE_MACHINE, AnimationInput.Continue.name)
+        is ExampleAnimationType.Beginner -> {
+            setState(STATE_MACHINE, AnimationInput.Level.name, 0f)
         }
-        ExampleAnimationType.Streak -> {
-            setState(STATE_MACHINE, AnimationInput.AddToStreak.name, true)
-            setState(STATE_MACHINE, AnimationInput.StreakMilestone.name, false)
-            fireState(STATE_MACHINE, AnimationInput.Continue.name)
+        is ExampleAnimationType.Intermediate -> {
+            setState(STATE_MACHINE, AnimationInput.Level.name, 1f)
+        }
+        is ExampleAnimationType.Advanced -> {
+            setState(STATE_MACHINE, AnimationInput.Level.name, 2f)
         }
     }
 }
 
-private const val ART_BOARD = "Lesson Endstate"
-private const val STATE_MACHINE = "endstate_complete"
+private const val ART_BOARD = "New Artboard"
+private const val STATE_MACHINE = "Designer's Test"
 
 @Immutable
 enum class ExampleAnimationState(val stateName: String) {
-    IDLE("Idle"),
-    TRANSITION_TO_STREAK("NonMile_Transition to Streak"),
-    SHOCKING("Shock"),
-    IDLE_STREAK("Streak Idle"),
+    Beginner("Beginner"),
+    Intermediate("Intermediate"),
+    Advanced("Advanced"),
     UNKNOWN("")
 }
 
 @Immutable
 sealed interface ExampleAnimationType {
     @Immutable
-    data object Idle: ExampleAnimationType
+    data object Beginner: ExampleAnimationType
 
     @Immutable
-    data object Streak: ExampleAnimationType
+    data object Intermediate: ExampleAnimationType
+
+    @Immutable
+    data object Advanced: ExampleAnimationType
 }
 
 @JvmInline
 @Immutable
 private value class AnimationInput private constructor(val name: String) {
     companion object {
-        val StartIdle = AnimationInput("Start Idle")
-        val Continue = AnimationInput("Continue")
-        val AddToStreak = AnimationInput("Add to Streak")
-        val StreakMilestone = AnimationInput("Streak Milestone")
-    }
-}
-
-@Preview
-@Composable
-private fun PreviewAnimation() {
-    val screen = remember { mutableIntStateOf(0) }
-
-    AnimatedContent(
-        targetState = screen.intValue,
-        modifier = Modifier.fillMaxSize(),
-        transitionSpec = {
-            fadeIn(spring()) togetherWith fadeOut(spring())
-        },
-        label = "PreviewScreens"
-    ) { targetState ->
-        PreviewScreen(
-            transition = targetState > 0
-        )
-    }
-
-    LaunchedEffect("screen") {
-        launch {
-            delay(2_000)
-            screen.intValue += 1
-        }
-    }
-}
-
-@Composable
-private fun PreviewScreen(
-    modifier: Modifier = Modifier,
-    transition: Boolean = false,
-) {
-    val type = remember { mutableStateOf<ExampleAnimationType>(ExampleAnimationType.Idle) }
-
-    Box(
-        modifier = modifier
-    ) {
-        ExampleAnimation(
-            type = type,
-            modifier = Modifier
-                .size(width = 135.dp, height = 237.dp)
-                .align(Alignment.Center)
-        )
-    }
-
-    LaunchedEffect("preview-screen", transition) {
-        if (transition) {
-            launch {
-                delay(1_500)
-                type.value = ExampleAnimationType.Streak
-            }
-        }
+        val Level = AnimationInput("Level")
     }
 }
