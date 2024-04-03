@@ -15,6 +15,12 @@ import com.devbrackets.rive.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * NOTE: currently the [ExampleAnimationType] and [ExampleAnimationState] don't
+ * represent the current resource and won't work. This serves primarily as an
+ * example of how it can be setup and will be updated at a future date with
+ * a rive asset that matches.
+ */
 @Composable
 internal fun ExampleAnimation(
     type: State<ExampleAnimationType>,
